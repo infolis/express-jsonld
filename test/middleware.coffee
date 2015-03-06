@@ -3,6 +3,7 @@ test = require 'tapes'
 express = require 'express'
 request = require 'supertest'
 jsonld = require 'jsonld'
+JsonldRapper = require('jsonld-rapper')
 
 JsonLdMiddleware = require('../src')
 DEBUG=false
@@ -17,17 +18,24 @@ doc1 = {
 }
 
 setupExpress = (doc, mwOptions) ->
-	mwOptions or= {}
+	mwOptions or= {
+		j2r: new JsonldRapper({})
+	}
 	mw = JsonLdMiddleware(mwOptions)
+	# console.log mw.handle.toString()
 	app = express()
 	app.get '/', (req, res, next) ->
 		req.jsonld = doc 
 		next()
 	app.use mw.handle
 	app.use (err, req, res, next) ->
+		err ||= new Error('NO ERROR BUT UNHANDLED BAD BAD BAD')
 		DEBUG and console.log {error: JSON.stringify(err, null, 2)}
-		res.statusCode = err.statusCode
-		res.end JSON.stringify({error: err }, null, 2)
+		res.status(err.statusCode || 500)
+		# res.end JSON.stringify({error: err }, null, 2)
+		res.send({error: err})
+		# console.log res.headers
+		# res.end "foo"
 	return [app, mw]
 
 app = null
@@ -88,7 +96,7 @@ testRDF = (t) ->
 				.get('/')
 				.set('Accept', format)
 				.end (err, res) ->
-					t.notOk err, 'No error'
+					t.notOk err, 'No error' # console.log res.text
 					t.equals res.statusCode, 200, 'Returned yay'
 					t.ok res.headers['content-type'].indexOf(format) > -1, 'GIGO'
 					t.end()
@@ -136,11 +144,10 @@ testConneg = (t) ->
 				t.end()
 	t.end()
 
-# TODO Test for RDF conversion errors
-# TODO Test for JSON-LD restructuring errors
-
 test "JSON-LD", testJSONLD
 test "RDF", testRDF
-test 'Content-Negotiation', testConneg
+test "Content-Negotiation", testConneg
+
+# TODO use async to properly run tests in order
 
 # ALT: src/index.coffee
