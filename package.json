@@ -11,18 +11,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kba/express-jsonld"
+    "url": "https://github.com/infolis/express-jsonld"
   },
   "author": "kba",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kba/express-jsonld/issues"
+    "url": "https://github.com/infolis/express-jsonld/issues"
   },
-  "homepage": "https://github.com/kba/express-jsonld",
+  "homepage": "https://github.com/infolis/express-jsonld",
   "dependencies": {
     "accepts": "^1.2.4",
     "jsonld": "^0.3.22",
-    "jsonld-rapper": "file:../jsonld-rapper"
+    "jsonld-rapper": "0.0.5"
   },
   "devDependencies": {
     "async": "^0.9.0",
