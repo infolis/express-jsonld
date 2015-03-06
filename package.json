@@ -1,6 +1,6 @@
 {
   "name": "express-jsonld",
-  "version": "0.0.3",
+  "version": "0.0.2",
   "description": "JSON-LD content-negotiating middleware for Express based on node-jsonld and rapper",
   "scripts": {
     "test": "coffee test/* | faucet",
