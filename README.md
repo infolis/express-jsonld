@@ -1,16 +1,8 @@
 express-jsonld
 ==============
 
-JSON-LD content-negotiating middleware for Express based on node-jsonld and rapper
+JSON-LD content-negotiating middleware for Express based on node-jsonld and jsonld-rapper
 
 ## Installation
 
-### Ubuntu
-
-Install `libraptor`: `sudo apt-get install libraptor2`
-
-Install dependencies: `npm install`
-
-Test: `npm test`
-
-Generate docs in `apidocs`: `npm run docs`
+Dependency jsonld-rapper requires libraptor to be installed. See https://www.npmjs.com/package/jsonld-rapper for installation instructions

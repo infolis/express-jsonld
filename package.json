@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "JSON-LD content-negotiating middleware for Express based on node-jsonld and rapper",
   "scripts": {
-    "test": "coffee test/* | tap-spec",
+    "test": "coffee test/* | faucet",
     "docs": "docker -i src -o apidocs -s -n -c vs",
     "compile": "coffee -c -o lib src",
     "clean": "rm -r apidocs lib ; true",
@@ -21,14 +21,16 @@
   "homepage": "https://github.com/kba/express-jsonld",
   "dependencies": {
     "accepts": "^1.2.4",
-    "jsonld": "^0.3.22"
+    "jsonld": "^0.3.22",
+    "jsonld-rapper": "file:../jsonld-rapper"
   },
   "devDependencies": {
+    "async": "^0.9.0",
     "coffee-script": "^1.9.1",
     "docker": "^0.2.14",
     "express": "^4.12.0",
+    "faucet": "0.0.1",
     "supertest": "^0.15.0",
-    "tap-spec": "^2.2.1",
     "tapes": "^0.4.1"
   },
   "main": "lib/index.js"
