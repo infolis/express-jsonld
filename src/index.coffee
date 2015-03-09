@@ -69,7 +69,7 @@ JsonLdMiddleware = (options) ->
 		outputType = j2r.SUPPORTED_OUTPUT_TYPE[matchingType]
 		JsonLD.toRDF req.jsonld, {expandContext: options.context, format: "application/nquads"}, (err, nquads) ->
 			if err
-				return next new _error(500,  "Failed to convert JSON-LD to RDF", err)
+				return next _error(500,  "Failed to convert JSON-LD to RDF", err)
 			j2r.convert nquads, 'nquads', outputType, (err, converted) ->
 				if err
 					return next err

@@ -22,7 +22,7 @@
   "dependencies": {
     "accepts": "^1.2.4",
     "jsonld": "^0.3.22",
-    "jsonld-rapper": "0.0.5"
+    "jsonld-rapper": "*"
   },
   "devDependencies": {
     "async": "^0.9.0",
