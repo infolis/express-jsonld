@@ -1,6 +1,6 @@
 # ## JsonLdMiddleware
 JsonLD       = require 'jsonld'
-JsonLD2RDF	 = require 'jsonld-rapper'
+JsonldRapper = require 'jsonld-rapper'
 Async        = require 'async'
 Accepts      = require 'accepts'
 ChildProcess = require 'child_process'
@@ -31,11 +31,11 @@ module.exports = class JsonldExpressMiddleware
 		# Context object (default: none)
 		@context     or= {}
 
-		@j2rOptions or= {
+		@jsonldRapperOptions or= {
 			expandContext: @context
 		}
-		@j2r or= new JsonLD2RDF(@j2rOptions)
-		@profile     or= @j2r.JSONLD_PROFILE.COMPACTED
+		@jsonldRapper or= new JsonldRapper(@jsonldRapperOptions)
+		@profile     or= @jsonldRapper.JSONLD_PROFILE.COMPACTED
 
 	# <h3>detectJsonLdProfile</h3>
 	detectJsonLdProfile: (req) ->
@@ -50,7 +50,7 @@ module.exports = class JsonldExpressMiddleware
 	# <h3>handleJsonLd</h3>
 	handleJsonLd: (req, res, next) ->
 		profile = @detectJsonLdProfile(req)
-		@j2r.convert req.jsonld, 'jsonld', 'jsonld', {profile}, (err, body) ->
+		@jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile}, (err, body) ->
 			if err
 				return next _error(500,  "JSON-LD error restructuring error", err)
 			res.statusCode or= 200
@@ -66,12 +66,12 @@ module.exports = class JsonldExpressMiddleware
 	# <h3>handleRdf</h3>
 	# Need to convert JSON-LD to N-Quads
 	handleRdf : (req, res, next) ->
-		matchingType = Accepts(req).types(Object.keys @j2r.SUPPORTED_OUTPUT_TYPE)
-		outputType = @j2r.SUPPORTED_OUTPUT_TYPE[matchingType]
+		matchingType = Accepts(req).types(Object.keys @jsonldRapper.SUPPORTED_OUTPUT_TYPE)
+		outputType = @jsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
 		JsonLD.toRDF req.jsonld, {expandContext: @context, format: "application/nquads"}, (err, nquads) =>
 			if err
 				return next _error(500,  "Failed to convert JSON-LD to RDF", err)
-			@j2r.convert nquads, 'nquads', outputType, (err, converted) ->
+			@jsonldRapper.convert nquads, 'nquads', outputType, (err, converted) ->
 				if err
 					return next err
 				res.statusCode or= 200
@@ -102,12 +102,12 @@ module.exports = class JsonldExpressMiddleware
 			if not req.header('Accept')
 				return next _error(406, "No Accept header given")
 
-			matchingType = Accepts(req).types(Object.keys @j2r.SUPPORTED_OUTPUT_TYPE)
+			matchingType = Accepts(req).types(Object.keys @jsonldRapper.SUPPORTED_OUTPUT_TYPE)
 
-			if not @j2r.SUPPORTED_OUTPUT_TYPE[matchingType]
+			if not @jsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
 				return next _error(406, "Incompatible media type found for #{req.header 'Accept'}")
 
-			switch @j2r.SUPPORTED_OUTPUT_TYPE[matchingType]
+			switch @jsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
 				when 'jsonld' then return @handleJsonLd(req, res, next)
 				when 'html'   then return   @handleHtml(req, res, next)
 				else               return    @handleRdf(req, res, next)

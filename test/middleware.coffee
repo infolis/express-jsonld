@@ -18,10 +18,7 @@ doc1 = {
 }
 
 setupExpress = (doc, mwOptions) ->
-	mwOptions or= {
-		j2rOptions: {}
-	}
-	mw = new JsonLdMiddleware(mwOptions)
+	mw = new JsonLdMiddleware()
 	# console.log mw.handle.toString()
 	app = express()
 	app.get '/', (req, res, next) ->
@@ -58,15 +55,15 @@ testJSONLD = (t) ->
 				# t.equals res.status, 200, 'Status 200'
 				# t.ok reApplicationJsonLd.test(res.headers['content-type']), 'Correct Type'
 				# switch profile
-				#     when mw.j2r.JSONLD_PROFILE.COMPACTED
+				#     when mw.jsonldRapper.JSONLD_PROFILE.COMPACTED
 				#         jsonld.compact doc1, {}, (err, expanded) ->
 				#             t.deepEquals JSON.parse(res.text), expanded, 'Correct profile is returned'
 				#             t.end()
-				#     when mw.j2r.JSONLD_PROFILE.FLATTENED
+				#     when mw.jsonldRapper.JSONLD_PROFILE.FLATTENED
 				#         jsonld.flatten doc1, {}, (err, expanded) ->
 				#             t.deepEquals JSON.parse(res.text), expanded, 'Correct profile is returned'
 				#             t.end()
-				#     when mw.j2r.JSONLD_PROFILE.EXPANDED
+				#     when mw.jsonldRapper.JSONLD_PROFILE.EXPANDED
 				#         jsonld.expand doc1, {}, (err, expanded) ->
 				#             t.deepEquals JSON.parse(res.text), expanded, 'Correct profile is returned'
 				#             t.end()
@@ -74,7 +71,7 @@ testJSONLD = (t) ->
 				#         console.error("Unknown Profile -- WTF?")
 				#         t.end()
 		)
-	testProfile(t, profile) for __, profile of mw.j2r.JSONLD_PROFILE
+	testProfile(t, profile) for __, profile of mw.jsonldRapper.JSONLD_PROFILE
 	t.end()
 
 rdfTypes = [
