@@ -12,7 +12,6 @@ _error = (statusCode, msg, cause) ->
 	err.cause = cause if cause
 	return err
 
-
 ###
 
 Middleware for Express that handles Content-Negotiation and sends the
@@ -20,22 +19,21 @@ right format to the client, based on the JSON-LD representation of the graph.
 
 ###
 
-module.exports = class JsonldExpressMiddleware
+module.exports = class ExpressJSONLD
 
 	constructor : (opts) ->
 		# <h3>Options</h3>
 		@[k] = v for k,v of opts
+		if not opts.jsonldRapper
+			throw new Error("Must set 'jsonldRapper' for ExpressJSONLD")
+		else
+			@jsonldRapper = opts.jsonldRapper
 
 		# Context Link to be sent out as HTTP header (default: none)
 		@contextLink or= null
 		# Context object (default: none)
 		@context     or= {}
-
-		@jsonldRapperOptions or= {
-			expandContext: @context
-		}
-		@jsonldRapper or= new JsonldRapper(@jsonldRapperOptions)
-		@profile     or= @jsonldRapper.JSONLD_PROFILE.COMPACTED
+		@profile     or= JsonldRapper.JSONLD_PROFILE.COMPACTED
 
 	# <h3>detectJsonLdProfile</h3>
 	detectJsonLdProfile: (req) ->
@@ -66,9 +64,9 @@ module.exports = class JsonldExpressMiddleware
 	# <h3>handleRdf</h3>
 	# Need to convert JSON-LD to N-Quads
 	handleRdf : (req, res, next) ->
-		matchingType = Accepts(req).types(Object.keys @jsonldRapper.SUPPORTED_OUTPUT_TYPE)
-		outputType = @jsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
-		JsonLD.toRDF req.jsonld, {expandContext: @context, format: "application/nquads"}, (err, nquads) =>
+		matchingType = Accepts(req).types(Object.keys JsonldRapper.SUPPORTED_OUTPUT_TYPE)
+		outputType = JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
+		JsonLD.toRDF req.jsonld, {expandContext: @jsonldRapper.curie.namespaces(), format: "application/nquads"}, (err, nquads) =>
 			if err
 				return next _error(500,  "Failed to convert JSON-LD to RDF", err)
 			@jsonldRapper.convert nquads, 'nquads', outputType, (err, converted) ->
@@ -102,12 +100,12 @@ module.exports = class JsonldExpressMiddleware
 			if not req.header('Accept')
 				return next _error(406, "No Accept header given")
 
-			matchingType = Accepts(req).types(Object.keys @jsonldRapper.SUPPORTED_OUTPUT_TYPE)
+			matchingType = Accepts(req).types(Object.keys JsonldRapper.SUPPORTED_OUTPUT_TYPE)
 
-			if not @jsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
+			if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
 				return next _error(406, "Incompatible media type found for #{req.header 'Accept'}")
 
-			switch @jsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
+			switch JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
 				when 'jsonld' then return @handleJsonLd(req, res, next)
 				when 'html'   then return   @handleHtml(req, res, next)
 				else               return    @handleRdf(req, res, next)

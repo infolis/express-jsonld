@@ -1,8 +1,9 @@
-util = require 'util'
-test = require 'tapes'
+Async   = require 'async'
+util    = require 'util'
+test    = require 'tape'
 express = require 'express'
 request = require 'supertest'
-jsonld = require 'jsonld'
+jsonld  = require 'jsonld'
 JsonldRapper = require('jsonld-rapper')
 
 JsonLdMiddleware = require('../src')
@@ -42,17 +43,21 @@ mw = new JsonLdMiddleware()
 reApplicationJsonLd = new RegExp "application/ld\\+json"
 
 testJSONLD = (t) ->
-	t.beforeEach (t) ->
-		[app, mw] = setupExpress(doc1)
-		t.end()
-	testProfile = (t, profile) ->
-		t.test "Profile detection for #{profile}", (t) -> (request(app)
+	[app, mw] = setupExpress(doc1)
+	profiles = {}
+	profiles[profile] = true for __, profile of JsonldRapper.JSONLD_PROFILE
+	profiles = Object.keys(profiles)
+	console.log profiles
+	Async.each profiles, (profile, done) ->
+		request(app)
 			.get('/')
 			.set('Accept', "application/ld+json; q=1, profile=\"#{profile}\"") 
 			.end (err, res) ->
+				console.log "Profile detection for #{profile}"
+				console.log res.body
 				t.notOk err, 'No error'
-				t.end()
-				# t.equals res.status, 200, 'Status 200'
+				t.equals res.status, 200, 'Status 200'
+				done()
 				# t.ok reApplicationJsonLd.test(res.headers['content-type']), 'Correct Type'
 				# switch profile
 				#     when mw.jsonldRapper.JSONLD_PROFILE.COMPACTED
@@ -70,9 +75,8 @@ testJSONLD = (t) ->
 				#     else
 				#         console.error("Unknown Profile -- WTF?")
 				#         t.end()
-		)
-	testProfile(t, profile) for __, profile of mw.jsonldRapper.JSONLD_PROFILE
-	t.end()
+		, (err) ->
+			t.end()
 
 rdfTypes = [
 	'text/turtle'
@@ -97,6 +101,7 @@ testRDF = (t) ->
 				.set('Accept', format)
 				.end (err, res) ->
 					t.notOk err, 'No error' # console.log res.text
+					console.log res.body
 					t.equals res.statusCode, 200, 'Returned yay'
 					t.ok res.headers['content-type'].indexOf(format) > -1, 'GIGO'
 					t.end()
@@ -148,7 +153,7 @@ testConneg = (t) ->
 				t.end()
 	t.end()
 
-test "JSON-LD", testJSONLD
+test.only "JSON-LD", testJSONLD
 test "RDF", testRDF
 test "Content-Negotiation", testConneg
 
