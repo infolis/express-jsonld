@@ -23,7 +23,7 @@
     "accepts": "^1.2.4",
     "deepmerge": "^0.2.7",
     "jsonld": "^0.3.22",
-    "jsonld-rapper": "0.0.11"
+    "jsonld-rapper": "0.0.12"
   },
   "devDependencies": {
     "async": "^0.9.0",
