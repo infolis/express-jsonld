@@ -22,6 +22,7 @@ right format to the client, based on the JSON-LD representation of the graph.
 module.exports = class ExpressJSONLD
 
 	constructor : (opts) ->
+		opts or= {}
 		# <h3>Options</h3>
 		@[k] = v for k,v of opts
 		if not opts.jsonldRapper
