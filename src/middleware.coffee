@@ -60,7 +60,7 @@ module.exports = class ExpressJSONLD
 	handleHtml : (req, res, next) ->
 		res.statusCode or= 200
 		res.setHeader 'Content-Type', 'text/html'
-		return res.send "<pre>" + JSON.stringify(req.jsonld) + '</pre>' # TODO
+		return res.send "<pre>" + JSON.stringify(req.jsonld, null, 2) + '</pre>' # TODO
 
 	# <h3>handleRdf</h3>
 	# Need to convert JSON-LD to N-Quads
