@@ -25,10 +25,13 @@ module.exports = class ExpressJSONLD
 		opts or= {}
 		# <h3>Options</h3>
 		@[k] = v for k,v of opts
-		if not opts.jsonldRapper
+		if not @jsonldRapper
 			throw new Error("Must set 'jsonldRapper' for ExpressJSONLD")
-		else
-			@jsonldRapper = opts.jsonldRapper
+
+		@htmlFormat or= 'text/html'
+		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[@htmlFormat]
+			throw new Error("htmlFormat '#{@htmlFormat}' is not supported! Please change it or leave it undefined")
+
 
 		# Context Link to be sent out as HTTP header (default: none)
 		@contextLink or= null
@@ -58,24 +61,57 @@ module.exports = class ExpressJSONLD
 
 	# TODO Decide a proper output format for HTML -- prettified JSON-LD? Turtle?
 	handleHtml : (req, res, next) ->
-		res.statusCode or= 200
-		res.setHeader 'Content-Type', 'text/html'
-		return res.send "<pre>" + JSON.stringify(req.jsonld, null, 2) + '</pre>' # TODO
+		_sendHTML = (err, body) ->
+			res.statusCode or= 200
+			res.setHeader 'Content-Type', 'text/html'
+			html = """
+			<html>
+			<body>
+			<pre>
+			#{body.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;')}
+			</pre>
+			</body>
+			</html>
+			"""
+			return res.send html
+		htmlFormat = req.query.format
+		htmlFormat or= @htmlFormat
+		htmlFormat = htmlFormat.replace(' ', '+')
+		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[htmlFormat]
+			return next _error 400, "format '#{htmlFormat}' is not supported! Please change it or leave it undefined"
+		req.headers['accept'] = htmlFormat
+		switch JsonldRapper.SUPPORTED_OUTPUT_TYPE[htmlFormat]
+			when 'jsonld'
+				return @jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile: 'expand'}, _sendHTML
+			when 'html'
+				return @handleRdf(req, res, next)
+			else
+				return @_toRdf req, res, _sendHTML
+
+#ALT: test/middleware.coffee
+		return @handleRdf(req, res, next)
+		# return res.send "<pre>" + JSON.stringify(req.jsonld, null, 2) + '</pre>' # TODO
 
 	# <h3>handleRdf</h3>
 	# Need to convert JSON-LD to N-Quads
 	handleRdf : (req, res, next) ->
+		@_toRdf req, res, (err, converted) ->
+			if err
+				return next err
+			return res.send converted
+
+	_toRdf: (req, res, cb) ->
 		matchingType = Accepts(req).types(Object.keys JsonldRapper.SUPPORTED_OUTPUT_TYPE)
 		outputType = JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
 		JsonLD.toRDF req.jsonld, {expandContext: @jsonldRapper.curie.namespaces(), format: "application/nquads"}, (err, nquads) =>
 			if err
-				return next _error(500,  "Failed to convert JSON-LD to RDF", err)
+				return cb _error(500,  "Failed to convert JSON-LD to RDF", err)
 			@jsonldRapper.convert nquads, 'nquads', outputType, (err, converted) ->
 				if err
-					return next err
+					return cb err
 				res.statusCode or= 200
 				res.setHeader 'Content-Type', matchingType
-				res.send converted
+				return cb null, converted
 
 	# <h3>getMiddleware</h3>
 	# Return the actual middleware function

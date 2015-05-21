@@ -18,9 +18,11 @@ doc1 = {
 	'foaf:firstName': 'Konstantin'
 }
 
-setupExpress = (doc) ->
+setupExpress = (doc, htmlFormat) ->
+	htmlFormat or= 'text/html'
 	mw = new JsonLdMiddleware(
 		jsonldRapper: new JsonldRapper()
+		htmlFormat: htmlFormat
 	)
 	# console.log mw.handle.toString()
 	app = express()
@@ -102,7 +104,7 @@ testConneg = (t) ->
 					t.equals res.status, 500, "500 Internal Server Error"
 					t.ok res.text.indexOf("No JSON-LD payload") > -1, "Error message provided"
 					done()
-		 'No Accept header, no response (TESTING only)': (done) ->
+		'No Accept header, no response (TESTING only)': (done) ->
 			[app, mw] = setupExpress(doc1)
 			request(app)
 				.get('/')
@@ -124,20 +126,78 @@ testConneg = (t) ->
 		'Unsupported profile': (done) ->
 			[app, mw] = setupExpress(doc1)
 			request(app)
-				j.get('/')  
+				.get('/')
 				.set('Accept', 'application/ld+json; q=1, profile="http://example.com/#bad-profile"')
 				.end (err, res) ->
 					t.notOk err, 'No internal error'
 					t.equals res.status, 500, "500 Internal Server Error"
 					t.ok res.text.indexOf("Unsupported profile") > -1, "Error message provided"
 					done()
-	}, (err) ->
+	}, (err, results) ->
+		t.end()
+
+htmlExpect = {
+	'text/turtle': '&lt;urn:fake:kba&gt;\n'
+	'application/rdf-triples': '" .'
+	# # 'application/trig'
+	# 'text/vnd.graphviz'
+	'application/x-turtle': '&lt;urn:fake:kba&gt;\n'
+	'text/rdf+n3': '&lt;urn:fake:kba&gt;\n'
+	'application/rdf+json': '"urn:fake:kba" : '
+	'application/nquads': '&lt;urn:fake:kba&gt; '
+	'application/rdf+xml': 'rdf:Description'
+	'text/html' : 'class="triple"'
+	# 'text/xml'
+}
+testHTML = (t) ->
+	Async.each Object.keys(htmlExpect), (format, done) ->
+		console.log "Testing #{format}"
+		[app, mw] = setupExpress(doc1, format)
+		request(app)
+			.get('/')
+			.set('Accept', 'text/html')
+			.end (err, res) ->
+				t.notOk err, 'No error' # console.log res.text
+				if err
+					return console.log err
+
+				t.ok res.text.indexOf(htmlExpect[format]) > -1, "contains what is to be expected for #{format}"
+				if res.text.indexOf(htmlExpect[format]) == -1
+					console.log res.text
+
+				t.equals res.statusCode, 200, 'Returned'
+				t.ok res.headers['content-type'].indexOf('text/html') > -1, 'CT is HTML'
+				t.ok res.text.indexOf(htmlExpect[format]) > -1, "contains what is to be expected for #{format}"
+				done()
+	, (err) ->
+		t.end()
+testHTMLparam = (t) ->
+	Async.each Object.keys(htmlExpect), (format, done) ->
+		console.log "Testing #{format}"
+		[app, mw] = setupExpress(doc1)
+		request(app)
+			.get('/?format='+format)
+			.set('Accept', 'text/html')
+			.end (err, res) ->
+				t.notOk err, 'No error' # console.log res.text
+				if err
+					return console.log err
+
+				t.ok res.text.indexOf(htmlExpect[format]) > -1, "contains what is to be expected for #{format}"
+				if res.text.indexOf(htmlExpect[format]) == -1
+					console.log res.text
+
+				t.equals res.statusCode, 200, 'Returned'
+				t.ok res.headers['content-type'].indexOf('text/html') > -1, 'CT is HTML'
+				t.ok res.text.indexOf(htmlExpect[format]) > -1, "contains what is to be expected for #{format}"
+				done()
+	, (err) ->
 		t.end()
 
 test "JSON-LD", testJSONLD
 test "RDF", testRDF
-test.only "Content-Negotiation", testConneg
-
-# TODO use async to properly run tests in order
+test "HTML", testHTML
+test "HTML", testHTMLparam
+test "Content-Negotiation", testConneg
 
 # ALT: src/index.coffee
