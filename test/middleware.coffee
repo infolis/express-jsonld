@@ -193,11 +193,21 @@ testHTMLparam = (t) ->
 				done()
 	, (err) ->
 		t.end()
+testHTMLparamFail = (t) ->
+	[app, mw] = setupExpress(doc1)
+	request(app)
+		.get('/?format=turtle')
+		.set('Accept', 'text/html')
+		.end (err, res) ->
+			t.equals res.statusCode, 406, 'Should fail wih 406'
+			t.end()
+
 
 test "JSON-LD", testJSONLD
 test "RDF", testRDF
 test "HTML", testHTML
-test "HTML", testHTMLparam
+test "HTML (query param)", testHTMLparam
+test "HTML (query param-expect FAIL)", testHTMLparamFail
 test "Content-Negotiation", testConneg
 
 # ALT: src/index.coffee

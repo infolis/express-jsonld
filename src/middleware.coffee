@@ -61,22 +61,24 @@ module.exports = class ExpressJSONLD
 
 	# TODO Decide a proper output format for HTML -- prettified JSON-LD? Turtle?
 	handleHtml : (req, res, next) ->
+		htmlFormat = req.query.format
+		htmlFormat or= @htmlFormat
+		htmlFormat = htmlFormat.replace(' ', '+')
 		_sendHTML = (err, body) ->
+			if err
+				return next _error(406, "Unsupported format '#{htmlFormat}': #{err}")
 			res.statusCode or= 200
 			res.setHeader 'Content-Type', 'text/html'
 			html = """
 			<html>
-			<body>
-			<pre>
-			#{body.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;')}
-			</pre>
-			</body>
+				<body>
+					<pre>
+					#{body.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;')}
+					</pre>
+				</body>
 			</html>
 			"""
 			return res.send html
-		htmlFormat = req.query.format
-		htmlFormat or= @htmlFormat
-		htmlFormat = htmlFormat.replace(' ', '+')
 		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[htmlFormat]
 			return next _error 400, "format '#{htmlFormat}' is not supported! Please change it or leave it undefined"
 		req.headers['accept'] = htmlFormat
