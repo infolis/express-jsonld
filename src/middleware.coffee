@@ -68,7 +68,7 @@ module.exports = class ExpressJSONLD
 			if err
 				return next _error(406, "Unsupported format '#{htmlFormat}': #{err}")
 			if typeof body is 'object'
-				body = JSON.stringify(body)
+				body = JSON.stringify(body, null, 2)
 			res.statusCode or= 200
 			res.setHeader 'Content-Type', 'text/html'
 			html = """
