@@ -202,12 +202,21 @@ testHTMLparamFail = (t) ->
 			t.equals res.statusCode, 406, 'Should fail wih 406'
 			t.end()
 
+testHTMLparamException = (t) ->
+	[app, mw] = setupExpress(doc1)
+	request(app)
+		.get('/?format=application/json')
+		.set('Accept', 'text/html')
+		.end (err, res) ->
+			t.equals res.statusCode, 200, 'Should not except anymore'
+			t.end()
 
 test "JSON-LD", testJSONLD
 test "RDF", testRDF
 test "HTML", testHTML
 test "HTML (query param)", testHTMLparam
 test "HTML (query param-expect FAIL)", testHTMLparamFail
+test "HTML (query param-expect Exception)", testHTMLparamException
 test "Content-Negotiation", testConneg
 
 # ALT: src/index.coffee
