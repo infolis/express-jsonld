@@ -29,6 +29,7 @@ module.exports = class ExpressJSONLD
 			throw new Error("Must set 'jsonldRapper' for ExpressJSONLD")
 
 		@htmlFormat or= 'text/html'
+		@htmlView or= null
 		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[@htmlFormat]
 			throw new Error("htmlFormat '#{@htmlFormat}' is not supported! Please change it or leave it undefined")
 
@@ -67,13 +68,19 @@ module.exports = class ExpressJSONLD
 		htmlFormat = htmlFormat.replace(' ', '+')
 		if req.query.profile
 			htmlFormat = "application/ld+json; q=1, profile=\"#{req.query.profile}\""
-		_sendHTML = (err, body) ->
+		_sendHTML = (err, body) =>
 			if err
 				return next _make_error(406, "Unsupported format '#{htmlFormat}': #{err}")
 			if typeof body is 'object'
 				body = JSON.stringify(body, null, 2)
-			res.statusCode or= 200
 			res.setHeader 'Content-Type', 'text/html'
+			res.statusCode or= 200
+			if @htmlView
+				return res.render @htmlView, {
+					format: htmlFormat
+					title: req.path
+					rdf:body
+				}
 			html = """
 			<html>
 				<body>
@@ -85,21 +92,15 @@ module.exports = class ExpressJSONLD
 			return res.send html
 		req.headers['accept'] = htmlFormat
 		try
-			outputType = @_getAcceptType(req)
+			outputType = JsonldRapper.SUPPORTED_OUTPUT_TYPE[@_getAcceptType(req)]
 		catch e
 			msg = "format '#{htmlFormat}' is not supported! Please change it or leave it undefined: #{e}"
 			return next _make_error(406, msg) 
-		switch outputType
-			when 'jsonld'
-				return @jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile: @detectJsonLdProfile(req)}, _sendHTML
-			when 'html'
-				return @handleRdf(req, res, next)
-			else
-				return @_toRdf req, res, _sendHTML
-
-#ALT: test/middleware.coffee
-		return @handleRdf(req, res, next)
-		# return res.send "<pre>" + JSON.stringify(req.jsonld, null, 2) + '</pre>' # TODO
+		if outputType is 'jsonld'
+			return @jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile: @detectJsonLdProfile(req)}, _sendHTML
+		# else if outputType is 'html'
+		#     return @handleRdf(req, res, next)
+		return @_toRdf req, res, _sendHTML
 
 	# <h3>handleRdf</h3>
 	# Need to convert JSON-LD to N-Quads
