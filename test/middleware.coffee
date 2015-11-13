@@ -8,7 +8,7 @@ JsonldRapper = require('jsonld-rapper')
 
 JsonLdMiddleware = require('../src')
 DEBUG=false
-# DEBUG=true
+DEBUG=true
 
 doc1 = {
 	'@context': {
@@ -66,7 +66,7 @@ testJSONLD = (t) ->
 
 rdfTypes = [
 	'text/turtle'
-	'application/rdf-triples'
+	'application/ntriples'
 	# 'application/trig'
 	'text/vnd.graphviz'
 	'application/x-turtle'
@@ -102,7 +102,7 @@ testConneg = (t) ->
 				.end (err, res) ->
 					t.notOk err, 'No internal error'
 					t.equals res.status, 500, "500 Internal Server Error"
-					t.ok res.text.indexOf("No JSON-LD payload") > -1, "Error message provided"
+					t.ok res.text.indexOf("No JSON-LD payload") > -1, "No JSON-LD payload"
 					done()
 		'No Accept header, no response (TESTING only)': (done) ->
 			[app, mw] = setupExpress(doc1)
@@ -111,7 +111,7 @@ testConneg = (t) ->
 				.end (err, res) ->
 					t.notOk err, 'No internal error'
 					t.equals res.status, 406, "406 Unacceptable"
-					t.ok res.text.indexOf("No Accept header") > -1, "Error message provided"
+					t.ok res.text.indexOf("No Accept header") > -1, "No Accept header"
 					done()
 		'Incompatible media type': (done) ->
 			[app, mw] = setupExpress(doc1)
@@ -121,24 +121,24 @@ testConneg = (t) ->
 				.end (err, res) ->
 					t.notOk err, 'No internal error'
 					t.equals res.status, 406, "406 Unacceptable"
-					t.ok res.text.indexOf("Incompatible media type") > -1, "Error message provided"
+					t.ok res.text.indexOf("Incompatible media type") > -1, "Incompatible media type"
 					done()
-		'Unsupported profile': (done) ->
-			[app, mw] = setupExpress(doc1)
-			request(app)
-				.get('/')
-				.set('Accept', 'application/ld+json; q=1, profile="http://example.com/#bad-profile"')
-				.end (err, res) ->
-					t.notOk err, 'No internal error'
-					t.equals res.status, 500, "500 Internal Server Error"
-					t.ok res.text.indexOf("Unsupported profile") > -1, "Error message provided"
-					done()
+		# 'Unsupported profile': (done) ->
+		#     [app, mw] = setupExpress(doc1)
+		#     request(app)
+		#         .get('/')
+		#         .set('Accept', 'application/ld+json; q=1, profile="http://example.com/#bad-profile"')
+		#         .end (err, res) ->
+		#             t.notOk err, 'No internal error'
+		#             t.equals res.status, 500, "500 Internal Server Error"
+		#             t.ok res.text.indexOf("Unsupported profile") > -1, "Unsupported profile"
+		#             done()
 	}, (err, results) ->
 		t.end()
 
 htmlExpect = {
 	'text/turtle': '&lt;urn:fake:kba&gt;\n'
-	'application/rdf-triples': '" .'
+	'application/ntriples': '" .'
 	# # 'application/trig'
 	# 'text/vnd.graphviz'
 	'application/x-turtle': '&lt;urn:fake:kba&gt;\n'
@@ -171,7 +171,8 @@ testHTML = (t) ->
 				done()
 	, (err) ->
 		t.end()
-testHTMLparam = (t) ->
+
+testHTML_format = (t) ->
 	Async.each Object.keys(htmlExpect), (format, done) ->
 		console.log "Testing #{format}"
 		[app, mw] = setupExpress(doc1)
@@ -193,16 +194,17 @@ testHTMLparam = (t) ->
 				done()
 	, (err) ->
 		t.end()
-testHTMLparamFail = (t) ->
+testHTML_formatFail = (t) ->
 	[app, mw] = setupExpress(doc1)
 	request(app)
 		.get('/?format=turtle')
 		.set('Accept', 'text/html')
 		.end (err, res) ->
 			t.equals res.statusCode, 406, 'Should fail wih 406'
+			console.log res.text
 			t.end()
 
-testHTMLparamException = (t) ->
+testHTML_formatException = (t) ->
 	[app, mw] = setupExpress(doc1)
 	request(app)
 		.get('/?format=application/json')
@@ -211,12 +213,22 @@ testHTMLparamException = (t) ->
 			t.equals res.statusCode, 200, 'Should not except anymore'
 			t.end()
 
+testHTML_profile = (t) ->
+	[app, mw] = setupExpress(doc1)
+	request(app)
+		.get('/?profile=compact')
+		.set('Accept', 'text/html')
+		.end (err, res) ->
+			# console.log res.text
+			t.end()
+
 test "JSON-LD", testJSONLD
 test "RDF", testRDF
-test "HTML", testHTML
-test "HTML (query param)", testHTMLparam
-test "HTML (query param-expect FAIL)", testHTMLparamFail
-test "HTML (query param-expect Exception)", testHTMLparamException
 test "Content-Negotiation", testConneg
+test "HTML", testHTML
+test "HTML (?profile=...)", testHTML_profile
+test "HTML (?format=...)", testHTML_format
+test "HTML (?format=... expect FAIL)", testHTML_formatFail
+test "HTML (?format=... expect Exception)", testHTML_formatException
 
 # ALT: src/index.coffee

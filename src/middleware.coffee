@@ -5,7 +5,7 @@ Async        = require 'async'
 Accepts      = require 'accepts'
 ChildProcess = require 'child_process'
 
-_error = (statusCode, msg, cause) ->
+_make_error = (statusCode, msg, cause) ->
 	err = new Error(msg)
 	err.msg = msg
 	err.statusCode = statusCode
@@ -32,7 +32,6 @@ module.exports = class ExpressJSONLD
 		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[@htmlFormat]
 			throw new Error("htmlFormat '#{@htmlFormat}' is not supported! Please change it or leave it undefined")
 
-
 		# Context Link to be sent out as HTTP header (default: none)
 		@contextLink or= null
 		# Context object (default: none)
@@ -47,6 +46,8 @@ module.exports = class ExpressJSONLD
 			requestedProfile = acc.match /profile=\"([^"]+)\"/
 			if requestedProfile and requestedProfile[1]
 				ret = requestedProfile[1]
+				if ret of JsonldRapper.JSONLD_PROFILE
+					ret = JsonldRapper.JSONLD_PROFILE[ret]
 		return ret
 
 	# <h3>handleJsonLd</h3>
@@ -54,7 +55,7 @@ module.exports = class ExpressJSONLD
 		profile = @detectJsonLdProfile(req)
 		@jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile}, (err, body) ->
 			if err
-				return next _error(500,  "JSON-LD error restructuring error", err)
+				return next _make_error(500,  "JSON-LD error restructuring error", err)
 			res.statusCode or= 200
 			res.setHeader 'Content-Type', 'application/ld+json'
 			return res.end JSON.stringify(body, null, 2)
@@ -64,9 +65,11 @@ module.exports = class ExpressJSONLD
 		htmlFormat = req.query.format
 		htmlFormat or= @htmlFormat
 		htmlFormat = htmlFormat.replace(' ', '+')
+		if req.query.profile
+			htmlFormat = "application/ld+json; q=1, profile=\"#{req.query.profile}\""
 		_sendHTML = (err, body) ->
 			if err
-				return next _error(406, "Unsupported format '#{htmlFormat}': #{err}")
+				return next _make_error(406, "Unsupported format '#{htmlFormat}': #{err}")
 			if typeof body is 'object'
 				body = JSON.stringify(body, null, 2)
 			res.statusCode or= 200
@@ -75,18 +78,20 @@ module.exports = class ExpressJSONLD
 			<html>
 				<body>
 					<pre>
-					#{body.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;')}
-					</pre>
+#{body.replace(/&/g, '&amp;').replace(/>/g, '&gt;').replace(/</g, '&lt;')} </pre>
 				</body>
 			</html>
 			"""
 			return res.send html
-		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[htmlFormat]
-			return next _error 400, "format '#{htmlFormat}' is not supported! Please change it or leave it undefined"
 		req.headers['accept'] = htmlFormat
-		switch JsonldRapper.SUPPORTED_OUTPUT_TYPE[htmlFormat]
+		try
+			outputType = @_getAcceptType(req)
+		catch e
+			msg = "format '#{htmlFormat}' is not supported! Please change it or leave it undefined: #{e}"
+			return next _make_error(406, msg) 
+		switch outputType
 			when 'jsonld'
-				return @jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile: 'expand'}, _sendHTML
+				return @jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile: @detectJsonLdProfile(req)}, _sendHTML
 			when 'html'
 				return @handleRdf(req, res, next)
 			else
@@ -109,13 +114,19 @@ module.exports = class ExpressJSONLD
 		outputType = JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
 		JsonLD.toRDF req.jsonld, {expandContext: @jsonldRapper.curie.namespaces(), format: "application/nquads"}, (err, nquads) =>
 			if err
-				return cb _error(500,  "Failed to convert JSON-LD to RDF", err)
+				return cb _make_error(500,  "Failed to convert JSON-LD to RDF", err)
 			@jsonldRapper.convert nquads, 'nquads', outputType, (err, converted) ->
 				if err
 					return cb err
 				res.statusCode or= 200
 				res.setHeader 'Content-Type', matchingType
 				return cb null, converted
+
+	_getAcceptType : (req) ->
+		matchingType = Accepts(req).types(Object.keys JsonldRapper.SUPPORTED_OUTPUT_TYPE)
+		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
+			throw _make_error(406, "Incompatible media type found for #{req['Accept']}")
+		return matchingType
 
 	# <h3>getMiddleware</h3>
 	# Return the actual middleware function
@@ -133,18 +144,18 @@ module.exports = class ExpressJSONLD
 		###
 		return (req, res, next) =>
 			if not req.jsonld
-				return next _error(500, 'No JSON-LD payload in the request, nothing to do')
+				return next _make_error(500, 'No JSON-LD payload in the request, nothing to do')
 
 			# To make qualified content negotiation, an 'Accept' header is required
 			# TODO This is too strict and should be lifted before usage in
 			# production, i.e. just send JSON-LD
 			if not req.header('Accept')
-				return next _error(406, "No Accept header given")
+				return next _make_error(406, "No Accept header given")
 
-			matchingType = Accepts(req).types(Object.keys JsonldRapper.SUPPORTED_OUTPUT_TYPE)
-
-			if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
-				return next _error(406, "Incompatible media type found for #{req.header 'Accept'}")
+			try
+				matchingType = @_getAcceptType(req)
+			catch e
+				return next e
 
 			switch JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
 				when 'jsonld' then return @handleJsonLd(req, res, next)
