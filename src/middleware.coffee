@@ -78,6 +78,7 @@ module.exports = class ExpressJSONLD
 			if @htmlView
 				return res.render @htmlView, {
 					format: htmlFormat
+					profile: profile
 					title: req.path
 					rdf:body
 				}
@@ -93,11 +94,12 @@ module.exports = class ExpressJSONLD
 		req.headers['accept'] = htmlFormat
 		try
 			outputType = JsonldRapper.SUPPORTED_OUTPUT_TYPE[@_getAcceptType(req)]
+			profile = @detectJsonLdProfile(req)
 		catch e
 			msg = "format '#{htmlFormat}' is not supported! Please change it or leave it undefined: #{e}"
 			return next _make_error(406, msg) 
 		if outputType is 'jsonld'
-			return @jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile: @detectJsonLdProfile(req)}, _sendHTML
+			return @jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile: profile}, _sendHTML
 		# else if outputType is 'html'
 		#     return @handleRdf(req, res, next)
 		return @_toRdf req, res, _sendHTML
