@@ -6,7 +6,7 @@ Accepts      = require 'accepts'
 ChildProcess = require 'child_process'
 
 _make_error = (statusCode, msg, cause) ->
-	err = new Error(msg)
+	err = {}
 	err.msg = msg
 	err.statusCode = statusCode
 	err.cause = cause if cause
@@ -30,7 +30,7 @@ module.exports = class ExpressJSONLD
 
 		@htmlFormat or= 'text/html'
 		@htmlView or= null
-		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[@htmlFormat]
+		if @htmlFormat not of JsonldRapper.SUPPORTED_OUTPUT_TYPE
 			throw new Error("htmlFormat '#{@htmlFormat}' is not supported! Please change it or leave it undefined")
 
 		# Context Link to be sent out as HTTP header (default: none)
@@ -93,7 +93,7 @@ module.exports = class ExpressJSONLD
 			return res.send html
 		req.headers['accept'] = htmlFormat
 		try
-			outputType = JsonldRapper.SUPPORTED_OUTPUT_TYPE[@_getAcceptType(req)]
+			[_, outputType] = @_getAcceptType(req)
 			profile = @detectJsonLdProfile(req)
 		catch e
 			msg = "format '#{htmlFormat}' is not supported! Please change it or leave it undefined: #{e}"
@@ -102,19 +102,21 @@ module.exports = class ExpressJSONLD
 			return @jsonldRapper.convert req.jsonld, 'jsonld', 'jsonld', {profile: profile}, _sendHTML
 		# else if outputType is 'html'
 		#     return @handleRdf(req, res, next)
-		return @_toRdf req, res, _sendHTML
+		return @_toRdf req, res, next, _sendHTML
 
 	# <h3>handleRdf</h3>
 	# Need to convert JSON-LD to N-Quads
 	handleRdf : (req, res, next) ->
-		@_toRdf req, res, (err, converted) ->
+		@_toRdf req, res, next, (err, converted) ->
 			if err
 				return next err
 			return res.send converted
 
-	_toRdf: (req, res, cb) ->
-		matchingType = Accepts(req).types(Object.keys JsonldRapper.SUPPORTED_OUTPUT_TYPE)
-		outputType = JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
+	_toRdf: (req, res, next, cb) ->
+		try
+			[matchingType, outputType] = @_getAcceptType(req)
+		catch e
+			return cb e
 		JsonLD.toRDF req.jsonld, {expandContext: @jsonldRapper.curie.namespaces(), format: "application/nquads"}, (err, nquads) =>
 			if err
 				return cb _make_error(500,  "Failed to convert JSON-LD to RDF", err)
@@ -126,10 +128,10 @@ module.exports = class ExpressJSONLD
 				return cb null, converted
 
 	_getAcceptType : (req) ->
-		matchingType = Accepts(req).types(Object.keys JsonldRapper.SUPPORTED_OUTPUT_TYPE)
-		if not JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
-			throw _make_error(406, "Incompatible media type found for #{req['Accept']}")
-		return matchingType
+		matchingType = Accepts(req).type(Object.keys JsonldRapper.SUPPORTED_OUTPUT_TYPE)
+		unless matchingType
+			throw _make_error(406, "Incompatible media type found for #{req.header 'accept'}")
+		return [matchingType, JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]]
 
 	# <h3>getMiddleware</h3>
 	# Return the actual middleware function
@@ -152,15 +154,15 @@ module.exports = class ExpressJSONLD
 			# To make qualified content negotiation, an 'Accept' header is required
 			# TODO This is too strict and should be lifted before usage in
 			# production, i.e. just send JSON-LD
-			if not req.header('Accept')
-				return next _make_error(406, "No Accept header given")
+			if 'accept' not of req.headers
+				req.headers['accept'] = 'application/json'
 
 			try
-				matchingType = @_getAcceptType(req)
+				[matchingType, outputType] = @_getAcceptType(req)
 			catch e
 				return next e
 
-			switch JsonldRapper.SUPPORTED_OUTPUT_TYPE[matchingType]
+			switch outputType
 				when 'jsonld' then return @handleJsonLd(req, res, next)
 				when 'html'   then return   @handleHtml(req, res, next)
 				else               return    @handleRdf(req, res, next)

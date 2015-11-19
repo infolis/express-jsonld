@@ -8,7 +8,7 @@ JsonldRapper = require('jsonld-rapper')
 
 JsonLdMiddleware = require('../src')
 DEBUG=false
-DEBUG=true
+# DEBUG=true
 
 doc1 = {
 	'@context': {
@@ -70,7 +70,7 @@ rdfTypes = [
 	# 'application/trig'
 	'text/vnd.graphviz'
 	'application/x-turtle'
-	'text/rdf+n3'
+	'text/n3'
 	'application/rdf+json'
 	'application/nquads'
 	'application/rdf+xml'
@@ -110,8 +110,8 @@ testConneg = (t) ->
 				.get('/')
 				.end (err, res) ->
 					t.notOk err, 'No internal error'
-					t.equals res.status, 406, "406 Unacceptable"
-					t.ok res.text.indexOf("No Accept header") > -1, "No Accept header"
+					t.equals res.status, 200, "200 (Default accept)"
+					t.equals res.headers['content-type'], 'application/ld+json'
 					done()
 		'Incompatible media type': (done) ->
 			[app, mw] = setupExpress(doc1)
@@ -120,8 +120,8 @@ testConneg = (t) ->
 				.set('Accept', 'application/pdf')
 				.end (err, res) ->
 					t.notOk err, 'No internal error'
-					t.equals res.status, 406, "406 Unacceptable"
-					t.ok res.text.indexOf("Incompatible media type") > -1, "Incompatible media type"
+					t.equals res.status, 406, "406 Unacceptable (PDF)"
+					t.ok res.text.indexOf("Incompatible media type") > -1, "Incompatible media type (PDF)"
 					done()
 		# 'Unsupported profile': (done) ->
 		#     [app, mw] = setupExpress(doc1)
@@ -142,7 +142,7 @@ htmlExpect = {
 	# # 'application/trig'
 	# 'text/vnd.graphviz'
 	'application/x-turtle': '&lt;urn:fake:kba&gt;\n'
-	'text/rdf+n3': '&lt;urn:fake:kba&gt;\n'
+	'text/n3': '&lt;urn:fake:kba&gt;\n'
 	'application/rdf+json': '"urn:fake:kba" : '
 	'application/nquads': '&lt;urn:fake:kba&gt; '
 	'application/rdf+xml': 'rdf:Description'
