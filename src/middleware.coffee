@@ -5,11 +5,14 @@ Async        = require 'async'
 Accepts      = require 'accepts'
 ChildProcess = require 'child_process'
 
+log = require('./log')(module)
+
 _make_error = (statusCode, msg, cause) ->
 	err = {}
 	err.msg = msg
 	err.statusCode = statusCode
 	err.cause = cause if cause
+	log.error 'Express-JSONLD error:', err
 	return err
 
 ###
@@ -159,8 +162,8 @@ module.exports = class ExpressJSONLD
 
 			try
 				[matchingType, outputType] = @_getAcceptType(req)
-			catch e
-				return next e
+			catch err
+				return next err
 
 			switch outputType
 				when 'jsonld' then return @handleJsonLd(req, res, next)
