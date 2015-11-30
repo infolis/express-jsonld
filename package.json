@@ -3,7 +3,7 @@
   "version": "0.0.16",
   "description": "JSON-LD content-negotiating middleware for Express based on node-jsonld and rapper",
   "scripts": {
-    "test": "coffee test/* | faucet",
+    "test": "coffee test/*",
     "docs": "docker -i src -o apidocs -s -n -c vs",
     "compile": "coffee -c -o lib src",
     "clean": "rm -r apidocs lib ; true",
@@ -30,11 +30,9 @@
     "async": "^0.9.0",
     "docker": "^0.2.14",
     "express": "^4.12.0",
-    "faucet": "0.0.1",
     "request": "^2.57.0",
     "supertest": "^0.15.0",
-    "tape": "^4.0.0",
-    "tapes": "^0.4.1"
+    "tape": "^4.0.0"
   },
   "main": "lib/index.js"
 }
