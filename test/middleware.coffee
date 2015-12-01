@@ -66,7 +66,7 @@ testJSONLD = (t) ->
 
 rdfTypes = [
 	'text/turtle'
-	'application/ntriples'
+	'application/n-triples'
 	# 'application/trig'
 	'text/vnd.graphviz'
 	'application/x-turtle'
@@ -138,7 +138,7 @@ testConneg = (t) ->
 
 htmlExpect = {
 	'text/turtle': '&lt;urn:fake:kba&gt;\n'
-	'application/ntriples': '" .'
+	'application/n-triples': '" .'
 	# # 'application/trig'
 	# 'text/vnd.graphviz'
 	'application/x-turtle': '&lt;urn:fake:kba&gt;\n'
