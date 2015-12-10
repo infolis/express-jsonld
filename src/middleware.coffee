@@ -165,6 +165,7 @@ module.exports = class ExpressJSONLD
 			catch err
 				return next err
 
+			log.silly 'Accept: ', [matchingType, outputType]
 			switch outputType
 				when 'jsonld' then return @handleJsonLd(req, res, next)
 				when 'html'   then return   @handleHtml(req, res, next)
