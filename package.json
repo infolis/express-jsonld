@@ -3,7 +3,7 @@
   "version": "0.0.17",
   "description": "JSON-LD content-negotiating middleware for Express based on node-jsonld and rapper",
   "scripts": {
-    "test": "coffee test/*",
+    "test": "for s in test/*;do coffee $s;done",
     "docs": "docker -i src -o apidocs -s -n -c vs",
     "compile": "coffee -c -o lib src",
     "clean": "rm -r apidocs lib ; true",
@@ -21,9 +21,9 @@
   "homepage": "https://github.com/infolis/express-jsonld",
   "dependencies": {
     "accepts": "^1.3.0",
-    "infolis-logging": "^0.0.4",
+    "easylog": "0.0.10",
     "jsonld": "^0.4.2",
-    "jsonld-rapper": "^0.2.2"
+    "jsonld-rapper": "^0.2.3"
   },
   "devDependencies": {
     "async": "^0.9.0",
