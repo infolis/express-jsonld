@@ -1,6 +1,6 @@
 {
   "name": "express-jsonld",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "JSON-LD content-negotiating middleware for Express based on node-jsonld and rapper",
   "scripts": {
     "test": "for s in test/*;do coffee $s;done",
