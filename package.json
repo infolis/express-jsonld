@@ -21,7 +21,7 @@
   "homepage": "https://github.com/infolis/express-jsonld",
   "dependencies": {
     "accepts": "^1.3.0",
-    "easylog": "0.0.10",
+    "easylog": "0.0.12",
     "jsonld": "^0.4.2",
     "jsonld-rapper": "^0.2.3"
   },
